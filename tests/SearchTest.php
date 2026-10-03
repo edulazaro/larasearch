@@ -50,6 +50,13 @@ class SearchTest extends TestCase
         $this->assertSame('gala', $project->fresh()->search_text);
     }
 
+    public function test_what_an_observer_fills_in_on_saving_is_in_the_text(): void
+    {
+        $lead = \EduLazaro\Larasearch\Tests\Fixtures\Lead::create(['name' => 'Laura']);
+
+        $this->assertSame('laura kept', $lead->fresh()->search_text);
+    }
+
     public function test_every_word_in_any_order_and_any_field(): void
     {
         Project::create(['name' => 'Congreso Anual', 'company' => 'Acme Events']);
@@ -111,7 +118,7 @@ class SearchTest extends TestCase
         Relations::flush();
         Relations::discover(__DIR__.'/Fixtures', 'EduLazaro\\Larasearch\\Tests\\Fixtures\\');
 
-        $this->assertEqualsCanonicalizing([Project::class, Contact::class, Article::class, Untracked::class], Relations::models());
+        $this->assertEqualsCanonicalizing([Project::class, Contact::class, Article::class, Untracked::class, \EduLazaro\Larasearch\Tests\Fixtures\Lead::class], Relations::models());
     }
 
     public function test_a_table_without_the_column_fails_clearly(): void

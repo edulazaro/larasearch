@@ -50,26 +50,32 @@ trait HasSearch
      */
     public static function bootHasSearch(): void
     {
-        static::saving(function (Model $model) {
-            $model->ensureSearchColumn();
+        // Registered once the model has booted, so after the observers attached with
+        // #[ObservedBy] (Laravel attaches them in a booted callback too, queued before this
+        // one): whatever an observer fills in on saving, a normalized phone say, is in the
+        // text. Observers attached later, from a service provider, run after these.
+        static::whenBooted(function () {
+            static::saving(function (Model $model) {
+                $model->ensureSearchColumn();
 
-            // Only when it can have changed: a status changed alone costs nothing.
-            if (! $model->exists || $model->isDirty($model->searchableColumns())) {
-                $model->setAttribute('search_text', $model->searchableText());
+                // Only when it can have changed: a status changed alone costs nothing.
+                if (! $model->exists || $model->isDirty($model->searchableColumns())) {
+                    $model->setAttribute('search_text', $model->searchableText());
+                }
+            });
+
+            static::saved(function (Model $model) {
+                if ($model->wasRecentlyCreated || $model->wasChanged([...$model->searchableColumns(), ...$model->searchableIndexColumns()])) {
+                    $model->syncSearchIndex();
+                }
+            });
+
+            static::deleted(fn (Model $model) => $model->forgetSearchIndex());
+
+            if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
+                static::restored(fn (Model $model) => $model->syncSearchIndex());
             }
         });
-
-        static::saved(function (Model $model) {
-            if ($model->wasRecentlyCreated || $model->wasChanged([...$model->searchableColumns(), ...$model->searchableIndexColumns()])) {
-                $model->syncSearchIndex();
-            }
-        });
-
-        static::deleted(fn (Model $model) => $model->forgetSearchIndex());
-
-        if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
-            static::restored(fn (Model $model) => $model->syncSearchIndex());
-        }
 
         // Dotted fields: saving a related record indexes this one again (Support\Relations).
         Relations::register(static::class);
