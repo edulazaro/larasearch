@@ -214,6 +214,8 @@ class SearchTest extends TestCase
         $this->assertFalse(Matcher::indexable('de'));
         $this->assertFalse(Matcher::indexable('the'));
         $this->assertFalse(Matcher::indexable('info@acme'));
+        $this->assertFalse(Matcher::indexable('600111222'));
+        $this->assertTrue(Matcher::indexable('horizon6'));
 
         if (! $this->onMysql()) {
             $this->markTestSkipped('FULLTEXT runs on MySQL (LARASEARCH_DB=mysql).');
@@ -221,11 +223,15 @@ class SearchTest extends TestCase
 
         Project::create(['name' => 'Fiesta en Sitges', 'email' => 'info@acme.test']);
         Project::create(['name' => 'Forza Horizon 6']);
+        Project::create(['name' => 'Llamar', 'company' => '654450123']);
 
         $this->assertSame(1, Project::searchText('sitg')->count());
         $this->assertSame(1, Project::searchText('fiesta en')->count());
         $this->assertSame(1, Project::searchText('forza horizon 6')->count());
         $this->assertSame(1, Project::searchText('info@acme.test')->count());
+        // A number from its middle, which the index alone cannot find.
+        $this->assertSame(1, Project::searchText('450')->count());
+        $this->assertSame(1, Project::searchText('llamar 0123')->count());
         $this->assertStringContainsString('match(', Project::searchText('sitges')->toSql());
     }
 }

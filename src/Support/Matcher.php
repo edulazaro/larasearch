@@ -10,7 +10,9 @@ use Illuminate\Contracts\Database\Query\Builder as BuilderContract;
  * On MySQL, a word goes through the FULLTEXT index when the index can find it: three
  * characters or more (innodb_ft_min_token_size), letters and digits only (an "@" or a "."
  * are operators or separators to MySQL), and not one of InnoDB's stopwords, which the index
- * never stores. Such words match from their start: "sitg" finds "sitges". Everything else,
+ * never stores. Such words match from their start: "sitg" finds "sitges". A number does not
+ * go through it: a piece of a phone or a reference is typed from anywhere in it ("450" must
+ * find "654450123"), and the index only finds a word from its start. Everything else,
  * and every word on SQLite or PostgreSQL, goes through LIKE, which matches anywhere and has
  * its wildcards escaped: "50%" means fifty per cent, not "50 and anything".
  */
@@ -68,6 +70,7 @@ final class Matcher
     {
         return strlen($word) >= 3
             && ctype_alnum($word)
+            && ! ctype_digit($word)
             && ! in_array($word, self::STOPWORDS, true);
     }
 

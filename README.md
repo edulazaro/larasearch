@@ -201,6 +201,8 @@ It writes every record again in batches and removes index rows whose record no l
 
 Short words go through LIKE because MySQL's FULLTEXT index does not store them, and a required word it cannot find would turn every search into "nothing found": "forza horizon 6" still finds Forza Horizon 6.
 
+Numbers go through LIKE too, whatever their length: the index finds a word only from its start, and a piece of a phone or a reference is typed from anywhere in it, so "450" finds "654450123". LIKE reads every row it is given; with other words in the term the index narrows the rows first. On a table of hundreds of thousands of rows, a term made only of numbers is a full scan: that is the point to move to a search engine.
+
 ## Requirements
 
 PHP 8.2+ and Laravel 12+. Tested on MySQL 8 (the FULLTEXT path) and SQLite. MariaDB and PostgreSQL use the LIKE path, which those tests cover, but the package's CI does not run on them yet.
